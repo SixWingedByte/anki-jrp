@@ -157,6 +157,17 @@ style_defs = [
         "tool": "Use Migaku-style diamonds as accent indicators instead of bars.",
         "type": WidgetType.Checkbox
     }, {
+        "name": "migaku_style",
+        "desc": "Migaku style",
+        "tool": "Display cards like the Migaku Japanese add-on:\n"
+                "- diamond indicators\n"
+                "- accent graph in hiragana, with pattern labels (H, A, N3, O, K2) below it\n"
+                "- furigana only while hovering over or tapping a word (on the front this follows the\n"
+                "  options for the front if information is hidden there)\n"
+                "- Migaku template elements (class=\"wrapped-japanese\" with display-type) work as they are;\n"
+                "  use \"Remove MIA/Migaku\" to remove the Migaku add-on's own script first",
+        "type": WidgetType.Checkbox
+    }, {
         "name": "highlight_split_accents",
         "desc": "Highlight split accents",
         "tool": "Highlight split accents (e.g. ゼ↓ンダイ・ミ→モン) "

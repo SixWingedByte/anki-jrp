@@ -103,6 +103,13 @@ function split_moras(reading: string, as_hira: boolean = false): string[] {
 
 const particle_mora = "◌";
 
+// Defined by the add-on in the wrapper around this script from the note type's style settings.
+declare const jrp_options: {[name: string]: boolean} | undefined;
+
+function jrp_option(name: string): boolean {
+	return typeof jrp_options !== "undefined" && jrp_options[name] === true;
+}
+
 function generate_accent_nodes(reading: string, accents: Accent[], is_yougen: boolean): [string[], Node, Node] {
 	function graph_span(text: string, flat: boolean = false): Node {
 		const span = document.createElement("span");
@@ -203,7 +210,31 @@ function generate_accent_nodes(reading: string, accents: Accent[], is_yougen: bo
 		return acc_indicator;
 	}
 
-	const moras = split_moras(reading);
+	// Like the pattern labels in the Migaku add-on: H, A, N3, O, K2; split accents joined with -.
+	function label_for(acc: Accent, mora_count: number, is_yougen: boolean): Node {
+		const label_span = document.createElement("span");
+		if(acc.value === null) {
+			label_span.classList.add("jrp-unknown");
+			label_span.append("?");
+			return label_span;
+		}
+		const iter: AccPart[] = Array.isArray(acc.value) ? acc.value : [[acc.value, mora_count]];
+		for(const [i, [ds_mora, mc]] of iter.entries()) {
+			const part_span = document.createElement("span");
+			const pattern = pattern_class(ds_mora, mc, is_yougen);
+			part_span.classList.add(pattern);
+			const letter = {"jrp-heiban": "H", "jrp-atamadaka": "A", "jrp-odaka": "O",
+				"jrp-nakadaka": "N", "jrp-kifuku": "K"}[pattern]!;
+			part_span.append(letter === "N" || letter === "K" ? letter + ds_mora : letter);
+			if(i > 0) {
+				label_span.append("-");
+			}
+			label_span.append(part_span);
+		}
+		return label_span;
+	}
+
+	const moras = split_moras(reading, jrp_option("hiragana_graph"));
 	const graph_div = document.createElement("div");
 	graph_div.classList.add("jrp-graph");
 
@@ -213,6 +244,17 @@ function generate_accent_nodes(reading: string, accents: Accent[], is_yougen: bo
 	for(const acc of accents) {
 		graph_div.appendChild(graph_for(acc, moras, is_yougen));
 		indicator_div.append(indicator_for(acc, moras.length, is_yougen));
+	}
+	if(jrp_option("pattern_labels")) {
+		const labels_div = document.createElement("div");
+		labels_div.classList.add("jrp-graph-labels");
+		for(const [i, acc] of accents.entries()) {
+			if(i > 0) {
+				labels_div.append(", ");
+			}
+			labels_div.append(label_for(acc, moras.length, is_yougen));
+		}
+		graph_div.appendChild(labels_div);
 	}
 	return [patterns_for(accents[0], moras.length, is_yougen), graph_div, indicator_div];
 }
@@ -694,16 +736,40 @@ function generator_settings(attr_val: string): object {
 declare const jrp_answer_side: boolean | undefined;
 
 function on_reveal_click(ev: Event) {
-	// Tapping a word on the front toggles what the "show on hover" options reveal,
-	// for devices without hover (AnkiDroid, AnkiMobile).
+	// Tapping a word toggles what's otherwise shown on hover, for devices without hover
+	// (AnkiDroid, AnkiMobile). The CSS decides what jrp-revealed actually shows.
 	const target = ev.target instanceof Element ? ev.target : null;
 	const word = target?.closest(".jrp-unit") ?? target?.closest("ruby");
-	if(word && word.closest(".jrp-front")) {
+	if(word) {
 		word.classList.toggle("jrp-revealed");
 	}
 }
 
+// Elements from Migaku Japanese add-on templates: <div display-type="coloredhover"
+// class="wrapped-japanese">. They're treated as Migaku syntax, with the display type mapped
+// to how furigana and coloring are shown.
+function adopt_migaku_elements() {
+	for(const e of Array.from(document.querySelectorAll(".wrapped-japanese:not([data-jrp-generate])"))) {
+		const display_type = (e.getAttribute("display-type") || "coloredhover").toLowerCase();
+		e.setAttribute("data-jrp-generate", "migaku");
+		if(!display_type.startsWith("colored")) {
+			e.classList.add("jrp-no-color");
+		}
+		if(display_type.endsWith("kanjireading") || display_type.endsWith("reading")) {
+			e.classList.add("jrp-furigana-always");
+		} else if(display_type.endsWith("kanji")) {
+			e.classList.add("jrp-no-furigana");
+		}
+		// the Migaku stylesheet hides these until its own script has processed them
+		(<HTMLElement>e).style.visibility = "visible";
+	}
+}
+
 function generate() {
+	if(jrp_option("migaku_templates")) {
+		adopt_migaku_elements();
+	}
+
 	const root_elements: Element[] = [];
 	for(const e of document.querySelectorAll("[data-jrp-generate]")) {
 		// The script can run more than once per card, e.g. when {{FrontSide}} brings the front
