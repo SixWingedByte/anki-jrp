@@ -12,7 +12,7 @@ from zipfile import ZIP_LZMA, ZipFile, ZipInfo
 if len(sys.argv) < 3:
     sys.exit("invalid number of arguments; "
              "usage: ./make.py <DATA DIR> <WINDOWS BIN DIR> [<IPADIC DIR> [<MECAB LIB DIR>]]\n"
-             "Pass an empty IPADIC DIR to skip the ipadic package. "
+             "Pass an empty IPADIC DIR to skip the full package. "
              "MECAB LIB DIR is the output of tools/fetch_mecab_libs.py.")
 
 _, data_dir, windows_bin_dir = sys.argv[:3]
@@ -95,10 +95,11 @@ def make_addon(path: str, full: bool, dic: bool = False):
             add_files(azip, ipadic_dir, "data/ipadic")
 
 
-make_addon(f"target/{addon_id}_{version}.ankiaddon", full=False)
-make_addon(f"target/{addon_id}_{version}_full.ankiaddon", full=True)
+# lite: code only; no-dictionary: plus data and MeCab, but no MeCab dictionary; full: everything
+make_addon(f"target/{addon_id}_{version}_lite.ankiaddon", full=False)
+make_addon(f"target/{addon_id}_{version}_no-dictionary.ankiaddon", full=True)
 if ipadic_dir:
-    make_addon(f"target/{addon_id}_{version}_ipadic.ankiaddon", full=True, dic=True)
+    make_addon(f"target/{addon_id}_{version}_full.ankiaddon", full=True, dic=True)
 
 with ZipFile(f"target/{addon_id}_script-only_{version}.zip", "w") as szip:
     add_files(szip, "src/pylib", ext=(".py",))
