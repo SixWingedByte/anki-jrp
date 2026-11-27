@@ -11,6 +11,7 @@ from .util import escape_text as esc
 class OutputType(Enum):
     DEFAULT = auto()
     MIGAKU = auto()
+    ANKI = auto()  # output only; parsed back as MIGAKU since the syntax is a subset
 
 
 def _add_accent(unit: Unit, prefs: Optional[OutputPrefs]) -> bool:
@@ -69,6 +70,19 @@ def insert_nbsp(val: str) -> str:
             was_space = True
         new_chars.append(c)
     return "".join(new_chars)
+
+
+def fmt_anki(units: Sequence[Unit], prefs: Optional[OutputPrefs] = None) -> str:
+    """Anki's built-in furigana syntax (漢字[かんじ]), as used by the {{furigana:Field}} filter.
+
+    Readings only; pitch accent can't be represented. Every reading segment is preceded by a
+    space, which marks where its base text starts and is removed by Anki when rendering."""
+    parts: List[str] = []
+    for unit in units:
+        for s in unit.non_base_segments():
+            parts.append(f" {esc('[', s.text)}[{esc(']', s.reading)}]" if s.reading else s.text)
+    res = "".join(parts)
+    return res[1:] if res.startswith(" ") and parts and parts[0].startswith(" ") else res
 
 
 def fmt_jrp(units: Sequence[Unit], prefs: Optional[OutputPrefs] = None) -> str:
