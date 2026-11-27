@@ -21,12 +21,18 @@ permissions:
   contents: write
 
 env:
-  # Pitch accent data, the Windows MeCab binaries and the IPAdic dictionary aren't part of the
-  # repository. They're taken from the upstream v0.2 release, pinned by checksum.
+  # The Windows MeCab binaries, the IPAdic dictionary and the previous pitch accent data (used
+  # as fallback) aren't part of the repository. They're taken from the upstream v0.2 release,
+  # pinned by checksum.
   BUNDLE_REPO: Ben-Kerman/anki-jrp
   BUNDLE_TAG: v0.2
   BUNDLE_FILE: japanese-readings-and-pitch-accent_0.2_ipadic.ankiaddon
   BUNDLE_SHA256: b852fd6b5e000a2af181e6345d2a6e7f4fd3f09f8ce4bfdf7959e089d7c8f926
+  # Pitch accents (CC BY-SA 4.0), pinned to the last commit that changed the file
+  KANJIUM_URL: https://raw.githubusercontent.com/mifunetoshiro/kanjium/685d4d723d6d20bf9beb169103aeac188eb067ad/data/source_files/raw/accents.txt
+  KANJIUM_SHA256: 8bd0dd127dab32ceec94cb03ab1ba6b68858ea73421dfa1731af2f373deb4f20
+  # Word variants (CC BY-SA 4.0); EDRDG regenerates it daily, so it can't be pinned
+  JMDICT_URL: https://www.edrdg.org/pub/Nihongo/JMdict.gz
 
 jobs:
   build:
@@ -91,9 +97,18 @@ jobs:
           echo "$BUNDLE_SHA256  $BUNDLE_FILE" | sha256sum --check -
           python -I -c "import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall('pkg')" "$BUNDLE_FILE"
           mkdir data bin ipadic
-          cp pkg/data/accents.xz pkg/data/variants.xz data/
+          cp pkg/data/accents.xz fallback-accents.xz
           cp pkg/bin/mecab.exe pkg/bin/libmecab.dll bin/
           cp pkg/data/ipadic/* ipadic/
+
+      - name: Build dictionary data
+        run: |
+          cd "$RUNNER_TEMP/bundle"
+          curl -fsSL -o kanjium-accents.txt "$KANJIUM_URL"
+          echo "$KANJIUM_SHA256  kanjium-accents.txt" | sha256sum --check -
+          curl -fsSL -o JMdict.gz "$JMDICT_URL"
+          sha256sum JMdict.gz
+          python -B "$GITHUB_WORKSPACE/tools/build_data.py" data JMdict.gz kanjium-accents.txt fallback-accents.xz
 
       # MeCab libraries for in-process use on macOS and Linux, from pinned fugashi wheels
       - name: Fetch MeCab libraries
