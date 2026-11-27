@@ -800,7 +800,8 @@ function generate() {
 			root.append(...lines.flatMap((line, index) => {
 				const parser = settings["migaku"] ? parse_migaku : parse_jrp;
 				const unit_nodes = parser(line).flatMap(u => {
-					return u.generate_dom_nodes(settings["enclose-empty-units"]);
+					// generate_dom_nodes takes whether to leave words without accents bare
+					return u.generate_dom_nodes(!settings["enclose-empty-units"]);
 				});
 				return index > 0 ? [document.createElement("br"), ...unit_nodes] : unit_nodes;
 			}));
