@@ -1,5 +1,6 @@
 # This project is licensed under the terms of the GNU GPL v3: https://www.gnu.org/licenses/; © 2022 Ben Kerman
 import dataclasses
+import hashlib
 import re
 from re import Pattern
 from typing import Any, Dict, List, Optional, Tuple
@@ -8,7 +9,6 @@ from anki.collection import Collection
 from anki.models import NotetypeDict
 
 from .util import get_path
-from ..pylib import version
 from ..pylib.preferences import AddonPrefs, NoteTypePrefs, StylePrefs
 
 
@@ -115,23 +115,31 @@ _comment_symbols = {
 }
 
 
+def _code_hash(code: str) -> str:
+    return hashlib.sha1(code.encode("utf-8")).hexdigest()[:12]
+
+
 def _enclose_code(code: str, css: bool = False) -> str:
+    # The start tag carries a hash of the generated code, so a section is only rewritten when
+    # its contents would change (e.g. after an add-on update or a style change).
     oc, cc = _comment_symbols["css" if css else "html"]
-    return f"{oc} JRP add-on managed section start [version:{0}] {cc}\n" \
+    return f"{oc} JRP add-on managed section start [version:{_code_hash(code)}] {cc}\n" \
            f"{oc} Changing the opening and closing tags in any way will break automatic CSS/JS handling.\n" \
            f"{' ' * len(oc)} Any manual changes made within this section will be overwritten. {cc}\n" \
            f"{code}\n" \
            f"{oc} JRP add-on managed section end {cc}"
 
 
-def _split_managed_section(value: str, css: bool = False, force_update: bool = False) -> Optional[Tuple[str, str]]:
+def _split_managed_section(value: str, new_code: str, css: bool = False,
+                           force_update: bool = False) -> Optional[Tuple[str, str]]:
     def tag_re(end: bool = False) -> Pattern:
         oc, cc = [re.escape(c) for c in _comment_symbols["css" if css else "html"]]
-        tag_pat = "end" if end else r"start \[version:(\d+)]"
+        # older versions wrote plain numbers instead of hashes; those never match and get replaced
+        tag_pat = "end" if end else r"start \[version:([0-9a-f]+)]"
         return re.compile(rf"^[^\S\r\n]*{oc} JRP add-on managed section {tag_pat} {cc}[^\S\r\n]*$", re.M)
 
     if start_m := tag_re().search(value):
-        if not force_update and int(start_m.group(1)) == (version.css if css else version.js):
+        if not force_update and start_m.group(1) == _code_hash(new_code):
             return None
         if end_m := tag_re(end=True).search(value, start_m.end()):
             return value[:start_m.start()], value[end_m.end():]
@@ -141,9 +149,10 @@ def _split_managed_section(value: str, css: bool = False, force_update: bool = F
 
 def update_style(nt: NotetypeDict, prefs: StylePrefs, force: bool = False) -> Optional[NotetypeDict]:
     def update_css(css: str) -> Optional[str]:
-        if sects := _split_managed_section(css, css=True, force_update=force):
+        code = generate_css(prefs)
+        if sects := _split_managed_section(css, code, css=True, force_update=force):
             before, after = sects
-            return f"{before}{_enclose_code(generate_css(prefs), css=True)}{after}"
+            return f"{before}{_enclose_code(code, css=True)}{after}"
         else:
             return None
 
@@ -157,9 +166,10 @@ def update_style(nt: NotetypeDict, prefs: StylePrefs, force: bool = False) -> Op
 
 def update_script(nt: NotetypeDict, force: bool = False) -> Optional[NotetypeDict]:
     def update_js(fmt: str, answer_side: bool) -> Optional[str]:
-        if sects := _split_managed_section(fmt, force_update=force):
+        code = f"<script>{generate_js(answer_side)}</script>"
+        if sects := _split_managed_section(fmt, code, force_update=force):
             before, after = sects
-            return f"{before}{_enclose_code(f'<script>{generate_js(answer_side)}</script>')}{after}"
+            return f"{before}{_enclose_code(code)}{after}"
         else:
             return None
 
@@ -179,8 +189,7 @@ def update_note_type(nt: NotetypeDict, prefs: NoteTypePrefs,
     had_changes = False
 
     if prefs.manage_style:
-        force = bool(old_prefs) and prefs.style != old_prefs.style
-        if with_style := update_style(nt, prefs.style, force=force):
+        if with_style := update_style(nt, prefs.style):
             had_changes = True
             nt = with_style
 
