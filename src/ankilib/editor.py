@@ -1,9 +1,12 @@
 # This project is licensed under the terms of the GNU GPL v3: https://www.gnu.org/licenses/; © 2022 Ben Kerman
+import json
 from enum import Enum, auto
-from typing import Iterable, List, Optional
+from typing import Callable, Iterable, List, Optional
 
+import aqt.editor
 import aqt.utils
 from aqt.editor import Editor
+from aqt.operations.note import update_note
 
 from . import global_vars as gv
 from .util import get_path
@@ -62,7 +65,46 @@ def _convert(edit: Editor, conv_type: ConversionType, out_type: Optional[OutputT
                 edit.note.fields[current_field] = new_html
                 edit.loadNoteKeepingFocus()
 
-    edit.call_after_note_saved(update_field_html)
+    if _is_new_editor(edit):
+        # addButton() of the new editor already saves the note before calling us
+        _convert_new_editor(edit, transform)
+    else:
+        edit.call_after_note_saved(update_field_html)
+
+
+def _is_new_editor(edit) -> bool:
+    # NewEditor (experimental Svelte editor) only exists in newer Anki versions, e.g. 26.09
+    new_editor_cls = getattr(aqt.editor, "NewEditor", None)
+    return new_editor_cls is not None and isinstance(edit, new_editor_cls)
+
+
+def _convert_new_editor(edit, transform: Callable[[Optional[str]], Optional[str]]):
+    # The new editor doesn't hold a Note object; its state lives in the webview.
+    field_idx = edit.currentField if edit.currentField is not None else edit.last_field_index
+    if field_idx is None:
+        return
+
+    def on_note_info(info) -> None:
+        if field_idx >= len(info.fields):
+            return
+        if (new_html := transform(info.fields[field_idx])) is None:
+            return
+
+        if info.id:
+            # existing note: update it in the collection (undoable), then redraw the editor
+            note = edit.mw.col.get_note(info.id)
+            note.fields[field_idx] = new_html
+            update_note(parent=edit.widget, note=note) \
+                .success(lambda _: edit.reload_note()) \
+                .run_in_background()
+        else:
+            # note that is still being added: push the new value into the webview
+            fields = list(info.fields)
+            fields[field_idx] = new_html
+            names = edit.mw.col.models.field_names(edit.mw.col.models.get(info.mid))
+            edit.web.eval(f"setFields({json.dumps(names)}, {json.dumps(fields)}); saveNow(true);")
+
+    edit.get_note_info(on_note_info)
 
 
 def inject_buttons(buttons: List[str], edit: Editor):
