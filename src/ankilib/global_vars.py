@@ -112,8 +112,24 @@ dictionary: Optional[Dictionary] = None
 QueryOp(parent=aqt.mw, op=lambda col: load_dict(), success=lambda _: print("JRP data loaded")).run_in_background()
 
 
+def mecab_problem() -> Optional[str]:
+    """A user-facing explanation if MeCab can't work because its dictionary is missing."""
+    if isinstance(mecab_handle, MecabLib) or prefs is None or prefs.addon.mecab_use_system_dict:
+        return None
+    dic_dir = get_path(prefs.addon.mecab_dict_dir)
+    if not os.path.isfile(os.path.join(dic_dir, "dicrc")):
+        return (f"The MeCab dictionary wasn't found at:\n{dic_dir}\n\n"
+                "The add-on package you installed doesn't include a dictionary. Install the package whose "
+                "name ends in \"_full.ankiaddon\" (\"_ipadic.ankiaddon\" in releases up to 0.3) instead, "
+                "or set a MeCab dictionary in the add-on's preferences.")
+    return None
+
+
 def convert_check() -> bool:
     if not dictionary:
         aqt.utils.showWarning("Dictionary is not (yet) loaded, can't convert.")
+        return False
+    if problem := mecab_problem():
+        aqt.utils.showWarning(problem, title="Japanese Reading and Pitch Accent Add-on")
         return False
     return True

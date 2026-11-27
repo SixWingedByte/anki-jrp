@@ -184,6 +184,9 @@ class ConvertDialog(QDialog):
         form_lo.addRow("Field:", self._field_cb)
 
         def exec_convert():
+            conv_type = ConvType(self._conv_type_cb.currentText())
+            if conv_type != ConvType.REMOVE and not gv.convert_check():
+                return
             convert_notes(brws, notes, self._field_cb.currentIndex(), ConvType(self._conv_type_cb.currentText()),
                           self._gen_cb.isChecked(), self._backup_cb.isChecked(), self._dryrun_cb.isChecked())
             self.accept()
