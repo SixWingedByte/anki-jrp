@@ -1,6 +1,7 @@
 # This project is licensed under the terms of the GNU GPL v3: https://www.gnu.org/licenses/; © 2022 Ben Kerman
 import dataclasses
 import hashlib
+import json
 import re
 from re import Pattern
 from typing import Any, Dict, List, Optional, Tuple
@@ -39,6 +40,19 @@ def _fmt_css(fmt_def: Dict[str, Any]) -> str:
     return css
 
 
+def _diamonds(prefs: StylePrefs) -> bool:
+    return prefs.use_diamond_indicators or prefs.migaku_style
+
+
+def script_options(prefs: StylePrefs) -> Dict[str, bool]:
+    """Options for the card script (jrp_options in cards.ts)."""
+    return {
+        "hiragana_graph": prefs.migaku_style,
+        "pattern_labels": prefs.migaku_style,
+        "migaku_templates": prefs.migaku_style,
+    }
+
+
 def generate_css(prefs: StylePrefs) -> str:
     files = [
         {
@@ -57,13 +71,16 @@ def generate_css(prefs: StylePrefs) -> str:
             "type": "pat",
             "pats": _patterns
         }, {
-            "name": "indicator-diamond" if prefs.use_diamond_indicators else "indicator-bar",
+            "name": "indicator-diamond" if _diamonds(prefs) else "indicator-bar",
             "type": "css"
         }, {
             "name": "graph",
             "type": "css"
         }
     ]
+    if prefs.migaku_style:
+        # before front.css, so hiding information on the front still takes precedence
+        files.append({"name": "migaku", "type": "css"})
     if prefs.hide_on_front:
         files.append({
             "name": "front",
@@ -81,7 +98,7 @@ def generate_css(prefs: StylePrefs) -> str:
             files.append({"name": "front-hover-furigana", "type": "css", "tap": True})
         if prefs.hover_front_indicators:
             files.append({"name": "front-hover-indicators", "type": "var", "tap": True,
-                          "vars": {"display": "inline-block" if prefs.use_diamond_indicators else "flex"}})
+                          "vars": {"display": "inline-block" if _diamonds(prefs) else "flex"}})
     if not prefs.graph_particle:
         files.append({
             "name": "graph-no-particle",
@@ -90,9 +107,11 @@ def generate_css(prefs: StylePrefs) -> str:
     return _compress_spaces("".join(_fmt_css(fmt_def) for fmt_def in files))
 
 
-def generate_js(answer_side: bool = False) -> str:
+def generate_js(prefs: StylePrefs, answer_side: bool = False) -> str:
     side = "true" if answer_side else "false"
-    return f"(function(){{ const jrp_answer_side = {side}; {_compress_spaces(_read_file('js', 'cards.js'))} }})();"
+    options = json.dumps(script_options(prefs), sort_keys=True)
+    return f"(function(){{ const jrp_answer_side = {side}; const jrp_options = {options}; " \
+           f"{_compress_spaces(_read_file('js', 'cards.js'))} }})();"
 
 
 _trail_str = "Do Not Edit If Using Automatic CSS and JS Management"
@@ -164,9 +183,9 @@ def update_style(nt: NotetypeDict, prefs: StylePrefs, force: bool = False) -> Op
         return None
 
 
-def update_script(nt: NotetypeDict, force: bool = False) -> Optional[NotetypeDict]:
+def update_script(nt: NotetypeDict, prefs: StylePrefs, force: bool = False) -> Optional[NotetypeDict]:
     def update_js(fmt: str, answer_side: bool) -> Optional[str]:
-        code = f"<script>{generate_js(answer_side)}</script>"
+        code = f"<script>{generate_js(prefs, answer_side)}</script>"
         if sects := _split_managed_section(fmt, code, force_update=force):
             before, after = sects
             return f"{before}{_enclose_code(code)}{after}"
@@ -194,7 +213,7 @@ def update_note_type(nt: NotetypeDict, prefs: NoteTypePrefs,
             nt = with_style
 
     if prefs.manage_script:
-        if with_script := update_script(nt):
+        if with_script := update_script(nt, prefs.style):
             had_changes = True
             nt = with_script
 

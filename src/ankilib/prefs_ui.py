@@ -349,7 +349,7 @@ class NoteTypeWidget(QFrame):
             if what == UpdateType.STYLE:
                 update_style(nt, nt_prefs.style, force=True)
             elif what == UpdateType.SCRIPT:
-                update_script(nt, force=True)
+                update_script(nt, nt_prefs.style, force=True)
             elif what == UpdateType.REMOVE_MI:
                 remove_mia_migaku(nt)
 

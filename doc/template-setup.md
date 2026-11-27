@@ -30,6 +30,15 @@ full on the back, even if it's inside an element with the class `jrp-front`.
 
 ---
 
+If you enable _Migaku style_ in the note type's style settings, templates made
+for the Migaku Japanese add-on also work as they are: elements like
+`<div display-type="coloredhover" class="wrapped-japanese">{{Expression}}</div>`
+are treated as Migaku syntax, and their display type decides how furigana and
+coloring are shown (`hover` types: furigana on hover; `kanjireading` and
+`reading` types: always; `kanji` types: never; types without `colored`: no
+coloring). Remove the Migaku add-on's own script first with the
+_Remove MIA/Migaku_ button on the _Note Types_ tab.
+
 If you have existing notes with Migaku syntax and don't want to upgrade to the
 improved syntax you can tell the card script to interpret your fields in Migaku
 mode by setting the attribute's value to `migaku`:

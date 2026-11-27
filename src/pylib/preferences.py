@@ -17,6 +17,7 @@ from .util import ConfigError, from_json, to_json
 class StylePrefs:
     hide_on_front: bool = True
     use_diamond_indicators: bool = False
+    migaku_style: bool = False
     highlight_split_accents: bool = True
     hover_front_coloring: bool = False
     hover_front_graph: bool = False

@@ -1,0 +1,28 @@
+/* Migaku style: furigana only while hovering over or tapping a word */
+[data-jrp-generate] rt {
+	visibility: hidden;
+}
+
+/* Same specificity as the rules in front.css, which come later and so still win on the front. */
+[data-jrp-generate] :hover > rt, [data-jrp-generate] .jrp-revealed rt {
+	visibility: visible;
+}
+
+/* display-type of elements from Migaku templates (see adopt_migaku_elements in cards.ts) */
+[data-jrp-generate].jrp-furigana-always rt {
+	visibility: visible;
+}
+
+[data-jrp-generate].jrp-no-furigana rt {
+	display: none;
+}
+
+.jrp-no-color .jrp-unit[class] > span {
+	color: inherit;
+	text-shadow: none;
+	background-color: transparent;
+}
+
+.jrp-graph-labels {
+	font-family: sans-serif;
+}

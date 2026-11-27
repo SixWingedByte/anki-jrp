@@ -152,7 +152,12 @@ some limitations compared to the new syntax:
 
 ## Migrating from the Migaku Japanese Add-on
 
-Follow the guide to [getting started](#getting-started) above. You'll need to
+Follow the guide to [getting started](#getting-started) above. To keep the
+look of the Migaku add-on, enable _Migaku style_ in the note type's style
+settings: diamond indicators, a hiragana accent graph with pattern labels
+(H, A, N3, O, K2), and furigana only while hovering over or tapping a word.
+With it, Migaku templates (`class="wrapped-japanese"` with a `display-type`)
+also work without changes; see the [template setup](/doc/template-setup.md). You'll need to
 manually transfer your accent pattern colors to the note type style settings if
 you want to keep them. The add-ons have different default colors.
 
