@@ -79,7 +79,11 @@ python tools/build_data.py <OUTPUT DIR> JMdict.gz kanjium-accents.txt fallback-a
 
 - **Variants** come from JMdict (`src/import_jmdict.py`). EDRDG regenerates
   JMdict daily and doesn't keep old versions, so the workflow always uses the
-  current file and logs its checksum and creation date.
+  current file and logs its checksum and creation date. Downloads are retried
+  and tried from both EDRDG hosts (`JMDICT_URLS` in the workflow). If JMdict
+  can't be downloaded at all, the workflow passes the `variants.xz` of the
+  upstream v0.2 release instead of `JMdict.gz` and shows a warning on the run,
+  so the build doesn't depend on EDRDG being reachable.
 - **Accents** come from Kanjium's `accents.txt`, pinned to a commit and checked
   by SHA-256 (`KANJIUM_URL` and `KANJIUM_SHA256` in the workflow). Word and
   reading pairs Kanjium doesn't have are taken from the fallback file, the

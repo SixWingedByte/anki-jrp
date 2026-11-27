@@ -7,12 +7,15 @@
   v0.2) as fallback for words Kanjium doesn't have. For a word + reading pair in both, Kanjium
   wins, except where the fallback has a split accent (e.g. 一目瞭然), which Kanjium can't express.
 
-usage: build_data.py <OUTPUT DIR> <JMdict.gz> <Kanjium accents.txt> <fallback accents.xz>
+usage: build_data.py <OUTPUT DIR> <JMdict.gz | variants.xz> <Kanjium accents.txt> <fallback accents.xz>
+
+If JMdict can't be downloaded, an existing variants.xz can be given instead; it's reused as is.
 """
 import gzip
 import lzma
 import os
 import re
+import shutil
 import subprocess
 import sys
 from typing import Dict, List, Set, Tuple
@@ -150,7 +153,13 @@ def main(out_dir: str, jmdict: str, kanjium_path: str, fallback_path: str) -> No
     kanjium = read_kanjium(kanjium_path)
     merged = merge(kanjium, fallback)
     entries = write_accents(accents_path, merged)
-    variant_lines, created = build_variants(variants_path, jmdict)
+    if jmdict.endswith(".xz"):
+        shutil.copyfile(jmdict, variants_path)
+        with lzma.open(variants_path, "rt", encoding="utf-8") as fd:
+            variant_lines = sum(1 for line in fd if not line.startswith("#"))
+        created = f"unknown (reused {os.path.basename(jmdict)})"
+    else:
+        variant_lines, created = build_variants(variants_path, jmdict)
     validate(accents_path, variants_path)
 
     only_kanjium = len(kanjium.keys() - fallback.keys())
