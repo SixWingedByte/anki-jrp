@@ -1,0 +1,3 @@
+.jrp-front .jrp-unit.jrp-uncertain:hover > span {
+	opacity: var(--jrp-uncertain-opacity);
+}

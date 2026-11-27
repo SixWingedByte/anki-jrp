@@ -158,6 +158,18 @@ style_defs = [
                 "except for the first indicator when using diamonds.",
         "type": WidgetType.Checkbox
     },
+    "Show on hover on the front (only if information is hidden on the front)",
+    {
+        "name": "hover_front_coloring",
+        "desc": "Accent coloring",
+        "tool": "Show the accent coloring of a word on the front of cards while hovering over it.",
+        "type": WidgetType.Checkbox
+    }, {
+        "name": "hover_front_graph",
+        "desc": "Accent graph",
+        "tool": "Show the accent graph of a word on the front of cards while hovering over it.",
+        "type": WidgetType.Checkbox
+    },
     "Values will be inserted into CSS as-is, without any verification",
     {
         "name": "ruby_font_size",

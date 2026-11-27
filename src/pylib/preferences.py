@@ -18,6 +18,8 @@ class StylePrefs:
     hide_on_front: bool = True
     use_diamond_indicators: bool = False
     highlight_split_accents: bool = True
+    hover_front_coloring: bool = False
+    hover_front_graph: bool = False
     ruby_font_size: str = "40%"
     graph_font_size: str = "70%"
     heiban: str = "#7070ff"
