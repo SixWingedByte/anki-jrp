@@ -27,7 +27,7 @@ def python_results(fixtures):
             "text": u.text(),
             "reading": u.reading(),
             "accent_reading": u.accent_reading(),
-            "accents": [str(a) for a in u.accents],
+            "accents": [str(a) for a in u.accents or []],  # parse_migaku leaves None without a tag
             "is_yougen": u.is_yougen,
             "uncertain": u.uncertain,
         } for u in units]})
