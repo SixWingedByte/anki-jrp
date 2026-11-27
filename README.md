@@ -2,7 +2,15 @@
 
 This Anki add-on allows automatically generating readings (furigana) and pitch
 accent information for an entire field with a single button press. It can also
-convert any amount of cards in bulk.
+convert any amount of cards in bulk, or fill in fields automatically when notes
+are added.
+
+This is a fork of [Ben Kerman's add-on](https://github.com/Ben-Kerman/anki-jrp),
+updated for Anki 26.09 and extended with: MeCab that runs inside Anki on
+Windows, macOS and Linux, automatic generation for new notes, output in Anki's
+built-in furigana syntax, reveal-on-hover/tap options for the card front, a
+Migaku style, particle pitch in the accent graph, `{{FrontSide}}` support, and
+dictionary data rebuilt from current sources.
 
 <img src="https://i.imgur.com/8NFw0HB.png">
 
@@ -15,46 +23,59 @@ backups if you haven't already.
 
 ## Getting Started
 
-1. Make sure you have a supported version of Anki installed. See [the AnkiWeb
-   page](https://ankiweb.net/shared/info/1845503807) for further information.
-2. With the `full` package, MeCab runs inside Anki on Windows (x64), macOS
-   and Linux, so there's nothing else to install. With the other packages, or
-   if you turn off _Use bundled MeCab library_ in the preferences, non-Windows
-   platforms need [MeCab installed](/doc/mecab.md).
-3. Install the full version of the add-on from
-   [AnkiWeb](https://ankiweb.net/shared/info/1845503807).  
-   Alternatively, download one of the `.ankiaddon` files from the
-   [latest release](https://github.com/Ben-Kerman/anki-jrp/releases/latest)
-   and manually install it from the add-on menu.
-    - The `full` file contains everything the add-on needs out of the box and
-      is what most users will want to install. (Up to version 0.3 this file
-      was called `ipadic`.)
-    - The `no-dictionary` file has everything except a MeCab dictionary, which
-      you then need to install yourself and select in the preferences. (Up to
-      version 0.3 this file was called `full`.)
+1. Use Anki 26.09 or later. Both Anki's regular editor and its experimental
+   new editor are supported.
+2. Download the file ending in `_full.ankiaddon` from the
+   [latest release](https://github.com/SixWingedByte/anki-jrp/releases/latest)
+   and install it with _Tools_ → _Add-ons_ → _Install from file..._ (or by
+   double-clicking it). The version on AnkiWeb is the original add-on without
+   the changes in this fork.
+    - The `full` file contains everything the add-on needs out of the box:
+      pitch accent data, MeCab and its dictionary. MeCab runs inside Anki on
+      Windows (x64), macOS and Linux, so there's nothing else to install.
+      (Up to version 0.3 this file was called `ipadic`.)
+    - The `no-dictionary` file has everything except the MeCab dictionary,
+      which you then need to install yourself and select in the preferences.
+      (Up to version 0.3 this file was called `full`.)
     - The `lite` file contains only the add-on itself, which means you will
       need to supply your own pitch accent/variant data and install MeCab as
-      well as a MeCab dictionary for it to use externally.
-4. Restart Anki, open the _Manage Note Types_ menu (`Ctrl`+`⇧`+`N`) and set up
-   your templates as described [here](/doc/template-setup.md).
-5. Open the add-on's preferences under _Tools_ in Anki's main menu bar, go the
-   _Note Types_ tab, then select and _Add_ all note types you set up in the last
-   step.  
-   Click `Remove MIA/Migaku` for any note types you previously used the Migaku
+      well as a MeCab dictionary for it to use externally; see
+      [Installing MeCab](/doc/mecab.md).
+3. Restart Anki, open the _Manage Note Types_ menu (`Ctrl`+`⇧`+`N`) and set up
+   your templates as described in the [note type setup](/doc/template-setup.md).
+4. Open the add-on's preferences (_Tools_ → _JRP Add-on Preferences..._), go to
+   the _Note Types_ tab, then select and _Add_ all note types you set up in the
+   last step.  
+   Click _Remove MIA/Migaku_ for any note types you previously used the Migaku
    Japanese Add-on with to remove the script and styling from that add-on,
    otherwise this add-on will not work properly.
-6. Save your preferences. You should now be able to preview or review any cards
-   that contain reading/accent syntax with furigana and accent coloring /
-   indicators.
+5. Save your preferences. The add-on inserts its card script and stylesheet
+   into the note types you added. You should now be able to preview or review
+   any cards that contain reading/accent syntax with furigana and accent
+   coloring / indicators.
+
+When you update the add-on, the script and stylesheet in your note types are
+updated automatically the next time Anki starts. Only the sections marked as
+managed by the add-on are changed.
 
 ## Adding Readings and Pitch Accent Information
 
 ### Individual
 
-To generate or remove readings and accent info for a single note, select it in
-the Anki browser, focus the field you want to change and click one of the
-conversion buttons at the right of the editor toolbar or press the associated
-shortcut.
+To generate or remove readings and accent info for a single note, open it in
+the Anki browser or the _Add_ window, focus the field you want to change and
+click one of the conversion buttons at the right of the editor toolbar or press
+the associated shortcut:
+
+| Shortcut | Result |
+|---|---|
+| `F2` | Generate readings and accents in the [default syntax](#default) |
+| `Ctrl`+`F2` | Generate readings and accents in [Migaku syntax](#migaku) |
+| `Shift`+`F2` | Generate readings in [Anki's built-in furigana syntax](#ankis-built-in-furigana-syntax) |
+| `F4` | Remove all reading/accent syntax and restore the plain text |
+
+Running a conversion again on a field that already contains syntax regenerates
+it.
 
 ### Anki's Built-in Furigana Syntax
 
@@ -97,6 +118,36 @@ containing hundreds or thousands of cards, make sure to back everything up
 before running the conversion. Exporting the deck(s) with scheduling information
 (but without media, since the conversion only changes the notes themselves)
 should be sufficient.
+
+## Card Display
+
+How readings and accents look on cards is set per note type in the add-on's
+preferences: _Tools_ → _JRP Add-on Preferences..._ → _Note Types_ → _Edit
+Style_. Save the preferences afterwards to apply changes to the note type.
+
+- **Coloring and indicators:** every word is colored by its accent pattern
+  (heiban, atamadaka, nakadaka, odaka, kifuku) and gets an indicator: bars by
+  default, or diamonds with _Use diamond indicators_. The colors can be changed
+  in the same dialog.
+- **Accent graph:** hovering over a word shows a graph of its pitch, written in
+  katakana (in hiragana with _Migaku style_). With _Show particle pitch in
+  graph_ (on by default), a faded `◌` after the word shows the pitch of a
+  following particle: high after heiban words, low after accented ones, which
+  is how e.g. 端が (heiban) and 橋が (odaka) differ.
+- **Front of the card:** with _Hide information on the front of cards_ (on by
+  default), furigana, coloring, indicators and graphs are hidden in elements
+  with the class `jrp-front` (see the [note type setup](/doc/template-setup.md#card-front)).
+  Under _Show on hover or tap on the front_ you can choose any of these to
+  appear while hovering over a word. On devices without a mouse, such as
+  AnkiDroid or AnkiMobile, tapping a word shows them and tapping it again hides
+  them.
+- **Migaku style:** makes cards look like the Migaku Japanese add-on: diamond
+  indicators, a hiragana graph with pattern labels (H, A, N3, O, K2) below it,
+  and furigana only while hovering over or tapping a word. Templates made for
+  the Migaku add-on also work with it as they are; see
+  [migrating](#migrating-from-the-migaku-japanese-add-on).
+- **Vertical writing** is supported; see the
+  [note type setup](/doc/template-setup.md#vertical-writing).
 
 ## Syntax
 
@@ -152,14 +203,17 @@ some limitations compared to the new syntax:
 
 ## Migrating from the Migaku Japanese Add-on
 
-Follow the guide to [getting started](#getting-started) above. To keep the
-look of the Migaku add-on, enable _Migaku style_ in the note type's style
-settings: diamond indicators, a hiragana accent graph with pattern labels
+Follow the guide to [getting started](#getting-started) above, including
+_Remove MIA/Migaku_ for your existing note types.
+
+To keep the look of the Migaku add-on, enable _Migaku style_ in the note type's
+style settings: diamond indicators, a hiragana accent graph with pattern labels
 (H, A, N3, O, K2), and furigana only while hovering over or tapping a word.
 With it, Migaku templates (`class="wrapped-japanese"` with a `display-type`)
-also work without changes; see the [template setup](/doc/template-setup.md). You'll need to
-manually transfer your accent pattern colors to the note type style settings if
-you want to keep them. The add-ons have different default colors.
+also work without changes; see the [note type setup](/doc/template-setup.md#migaku-templates).
+You'll need to manually transfer your accent pattern colors to the note type
+style settings if you want to keep them. The add-ons have different default
+colors.
 
 You can easily migrate existing notes to the new syntax without losing any
 manual changes by selecting them in the browser and
@@ -191,11 +245,34 @@ The packages built by this repository's GitHub workflow include:
 
 The data files are licensed under CC BY-SA 4.0 as adaptations of the above.
 
+## Troubleshooting
+
+- **"The MeCab dictionary wasn't found"**, or a MeCab error mentioning
+  `param.cpp(69)` and `ipadic\dicrc`: the installed package doesn't include
+  the MeCab dictionary. Install the `_full.ankiaddon` file (called
+  `_ipadic.ankiaddon` up to version 0.3). Other MeCab problems are covered in
+  [Installing MeCab](/doc/mecab.md#troubleshooting).
+- **Cards show the raw syntax** (like `{[辞書|じしょ];1}`) instead of furigana:
+  the note type hasn't been added on the _Note Types_ tab of the preferences,
+  _Manage script_ is unchecked for it, or the field isn't inside an element
+  with `data-jrp-generate` (see the [note type setup](/doc/template-setup.md)).
+- **`⚠ Error during parsing: invalid segment`** on a card: the field's syntax
+  doesn't match what the template expects. Fields in Migaku syntax
+  (`辞書[じしょ;a]`) need `data-jrp-generate="migaku"` in the template, fields
+  in the default syntax (`{[辞書|じしょ];1}`) a plain `data-jrp-generate`.
+  Converting the field with `F2` or `Ctrl`+`F2` also fixes it.
+- **"Dictionary is not (yet) loaded"**: the pitch accent data is still being
+  loaded in the background after Anki started. Wait a moment and try again.
+
+## Development
+
+Building the add-on, running the tests, the GitHub workflow and how to make a
+release are described in [Development](/doc/development.md).
+
 ## Reporting Issues
 
-If you encounter a bug or crash while using the add-on please report it. You can
-either open a GitHub issue in this repository or contact me on Discord, where
-you can find me in the [Refold community servers](https://refold.la/join/).
+If you encounter a bug or crash while using the add-on please report it by
+opening a GitHub issue in this repository.
 
 Explain what you were doing when the issue occurred as accurately as possible,
 ideally with a list of steps to reproduce it. If the problem is related to
