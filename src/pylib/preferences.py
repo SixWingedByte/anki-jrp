@@ -22,6 +22,7 @@ class StylePrefs:
     hover_front_graph: bool = False
     hover_front_furigana: bool = False
     hover_front_indicators: bool = False
+    graph_particle: bool = True
     ruby_font_size: str = "40%"
     graph_font_size: str = "70%"
     heiban: str = "#7070ff"

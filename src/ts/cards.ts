@@ -101,6 +101,8 @@ function split_moras(reading: string, as_hira: boolean = false): string[] {
 	return moras;
 }
 
+const particle_mora = "◌";
+
 function generate_accent_nodes(reading: string, accents: Accent[], is_yougen: boolean): [string[], Node, Node] {
 	function graph_span(text: string, flat: boolean = false): Node {
 		const span = document.createElement("span");
@@ -169,6 +171,15 @@ function generate_accent_nodes(reading: string, accents: Accent[], is_yougen: bo
 				graph_div.append("・");
 			}
 		}
+
+		// A following particle (が, を, ...) stays high after heiban words and is low after any
+		// accented word, which is what distinguishes e.g. 橋が (odaka) from 端が (heiban).
+		const [last_ds_mora] = iter[iter.length - 1];
+		const particle_span = document.createElement("span");
+		particle_span.classList.add("jrp-graph-particle");
+		particle_span.append(last_ds_mora === 0 ? graph_span(particle_mora, true) : particle_mora);
+		graph_div.append(particle_span);
+
 		return graph_div;
 	}
 
@@ -679,10 +690,29 @@ function generator_settings(attr_val: string): object {
 	return res;
 }
 
+// Defined by the add-on in the wrapper around this script: true in back templates.
+declare const jrp_answer_side: boolean | undefined;
+
+function on_reveal_click(ev: Event) {
+	// Tapping a word on the front toggles what the "show on hover" options reveal,
+	// for devices without hover (AnkiDroid, AnkiMobile).
+	const target = ev.target instanceof Element ? ev.target : null;
+	const word = target?.closest(".jrp-unit") ?? target?.closest("ruby");
+	if(word && word.closest(".jrp-front")) {
+		word.classList.toggle("jrp-revealed");
+	}
+}
+
 function generate() {
 	const root_elements: Element[] = [];
 	for(const e of document.querySelectorAll("[data-jrp-generate]")) {
+		// The script can run more than once per card, e.g. when {{FrontSide}} brings the front
+		// template's copy along. Content that was already generated must not be parsed again.
+		if(e.hasAttribute("data-jrp-done")) {
+			continue;
+		}
 		if(e.parentElement!.closest("[data-jrp-generate]") === null) {
+			e.setAttribute("data-jrp-done", "");
 			let deepest_parent = e;
 			while(deepest_parent.childNodes.length === 1 && deepest_parent.firstElementChild !== null) {
 				deepest_parent = deepest_parent.firstElementChild;
@@ -709,8 +739,16 @@ function generate() {
 				return index > 0 ? [document.createElement("br"), ...unit_nodes] : unit_nodes;
 			}));
 			root.normalize();
+			root.addEventListener("click", on_reveal_click);
 		} catch(e) {
 			root.append(`⚠ Error during parsing: ${(<Error>e).message}`);
+		}
+	}
+
+	// On the back, content from the front ({{FrontSide}}) shouldn't stay hidden.
+	if(typeof jrp_answer_side !== "undefined" && jrp_answer_side) {
+		for(const e of Array.from(document.querySelectorAll(".jrp-front"))) {
+			e.classList.remove("jrp-front");
 		}
 	}
 }

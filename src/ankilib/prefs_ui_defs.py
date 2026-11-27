@@ -158,26 +158,33 @@ style_defs = [
                 "except for the first indicator when using diamonds.",
         "type": WidgetType.Checkbox
     },
-    "Show on hover on the front (only if information is hidden on the front)",
+    {
+        "name": "graph_particle",
+        "desc": "Show particle pitch in graph",
+        "tool": "Add a faded mora after each word in the accent graph showing the pitch of a following\n"
+                "particle: high after heiban words, low after accented ones (e.g. 端が vs 橋が).",
+        "type": WidgetType.Checkbox
+    },
+    "Show on hover or tap on the front (only if information is hidden on the front)",
     {
         "name": "hover_front_coloring",
         "desc": "Accent coloring",
-        "tool": "Show the accent coloring of a word on the front of cards while hovering over it.",
+        "tool": "Show the accent coloring of a word on the front of cards while hovering over or tapping it.",
         "type": WidgetType.Checkbox
     }, {
         "name": "hover_front_graph",
         "desc": "Accent graph",
-        "tool": "Show the accent graph of a word on the front of cards while hovering over it.",
+        "tool": "Show the accent graph of a word on the front of cards while hovering over or tapping it.",
         "type": WidgetType.Checkbox
     }, {
         "name": "hover_front_furigana",
         "desc": "Furigana",
-        "tool": "Show the furigana of a word on the front of cards while hovering over it.",
+        "tool": "Show the furigana of a word on the front of cards while hovering over or tapping it.",
         "type": WidgetType.Checkbox
     }, {
         "name": "hover_front_indicators",
         "desc": "Accent indicators",
-        "tool": "Show the accent indicators of a word on the front of cards while hovering over it.",
+        "tool": "Show the accent indicators of a word on the front of cards while hovering over or tapping it.",
         "type": WidgetType.Checkbox
     },
     "Values will be inserted into CSS as-is, without any verification",
