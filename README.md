@@ -17,7 +17,7 @@ backups if you haven't already.
 
 1. Make sure you have a supported version of Anki installed. See [the AnkiWeb
    page](https://ankiweb.net/shared/info/1845503807) for further information.
-2. With the `ipadic` package, MeCab runs inside Anki on Windows (x64), macOS
+2. With the `full` package, MeCab runs inside Anki on Windows (x64), macOS
    and Linux, so there's nothing else to install. With the other packages, or
    if you turn off _Use bundled MeCab library_ in the preferences, non-Windows
    platforms need [MeCab installed](/doc/mecab.md).
@@ -26,15 +26,15 @@ backups if you haven't already.
    Alternatively, download one of the `.ankiaddon` files from the
    [latest release](https://github.com/Ben-Kerman/anki-jrp/releases/latest)
    and manually install it from the add-on menu.
-    - The smallest file contains only the add-on itself, which means you will
+    - The `full` file contains everything the add-on needs out of the box and
+      is what most users will want to install. (Up to version 0.3 this file
+      was called `ipadic`.)
+    - The `no-dictionary` file has everything except a MeCab dictionary, which
+      you then need to install yourself and select in the preferences. (Up to
+      version 0.3 this file was called `full`.)
+    - The `lite` file contains only the add-on itself, which means you will
       need to supply your own pitch accent/variant data and install MeCab as
-      well as a MeCab dictionary alongside a dictionary for it to use
-      externally.
-    - The `full` file has everything except a MeCab dictionary, but including
-      a MeCab exe for Windows.
-    - The `ipadic` file contains everything the add-on needs out of the box and
-      is probably what most users will want to install initially.  
-      This is also the version shared on AnkiWeb.
+      well as a MeCab dictionary for it to use externally.
 4. Restart Anki, open the _Manage Note Types_ menu (`Ctrl`+`⇧`+`N`) and set up
    your templates as described [here](/doc/template-setup.md).
 5. Open the add-on's preferences under _Tools_ in Anki's main menu bar, go the
