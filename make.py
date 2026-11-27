@@ -10,10 +10,14 @@ from datetime import datetime
 from zipfile import ZIP_LZMA, ZipFile, ZipInfo
 
 if len(sys.argv) < 3:
-    sys.exit("invalid number of arguments; usage: ./make.py <DATA DIR> <WINDOWS BIN DIR> [<IPADIC DIR>]")
+    sys.exit("invalid number of arguments; "
+             "usage: ./make.py <DATA DIR> <WINDOWS BIN DIR> [<IPADIC DIR> [<MECAB LIB DIR>]]\n"
+             "Pass an empty IPADIC DIR to skip the ipadic package. "
+             "MECAB LIB DIR is the output of tools/fetch_mecab_libs.py.")
 
 _, data_dir, windows_bin_dir = sys.argv[:3]
-ipadic_dir = sys.argv[3] if len(sys.argv) >= 4 else None
+ipadic_dir = sys.argv[3] if len(sys.argv) >= 4 and sys.argv[3] else None
+lib_dir = sys.argv[4] if len(sys.argv) >= 5 and sys.argv[4] else None
 
 version_dict = {}
 with open("src/pylib/version.py", encoding="utf-8") as vfd:
@@ -84,6 +88,8 @@ def make_addon(path: str, full: bool, dic: bool = False):
             add_file(azip, os.path.join(windows_bin_dir, "libmecab.dll"), "bin/libmecab.dll")
             add_file(azip, os.path.join(windows_bin_dir, "mecab.exe"), "bin/mecab.exe")
             add_data(azip, b"", "bin/mecabrc")
+            if lib_dir:
+                add_files(azip, lib_dir, "lib")
 
         if dic:
             add_files(azip, ipadic_dir, "data/ipadic")
