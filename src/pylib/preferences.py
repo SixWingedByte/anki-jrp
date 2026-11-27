@@ -20,6 +20,8 @@ class StylePrefs:
     highlight_split_accents: bool = True
     hover_front_coloring: bool = False
     hover_front_graph: bool = False
+    hover_front_furigana: bool = False
+    hover_front_indicators: bool = False
     ruby_font_size: str = "40%"
     graph_font_size: str = "70%"
     heiban: str = "#7070ff"

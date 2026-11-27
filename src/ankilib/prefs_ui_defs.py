@@ -169,6 +169,16 @@ style_defs = [
         "desc": "Accent graph",
         "tool": "Show the accent graph of a word on the front of cards while hovering over it.",
         "type": WidgetType.Checkbox
+    }, {
+        "name": "hover_front_furigana",
+        "desc": "Furigana",
+        "tool": "Show the furigana of a word on the front of cards while hovering over it.",
+        "type": WidgetType.Checkbox
+    }, {
+        "name": "hover_front_indicators",
+        "desc": "Accent indicators",
+        "tool": "Show the accent indicators of a word on the front of cards while hovering over it.",
+        "type": WidgetType.Checkbox
     },
     "Values will be inserted into CSS as-is, without any verification",
     {

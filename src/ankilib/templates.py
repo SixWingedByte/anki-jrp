@@ -73,6 +73,11 @@ def generate_css(prefs: StylePrefs) -> str:
         if prefs.hover_front_graph:
             files.append({"name": "front-hover-graph", "type": "css"})
             files.append({"name": "front-hover-graph", "type": "pat", "pats": _patterns_unk})
+        if prefs.hover_front_furigana:
+            files.append({"name": "front-hover-furigana", "type": "css"})
+        if prefs.hover_front_indicators:
+            files.append({"name": "front-hover-indicators", "type": "var",
+                          "vars": {"display": "inline-block" if prefs.use_diamond_indicators else "flex"}})
     return _compress_spaces("".join(_fmt_css(fmt_def) for fmt_def in files))
 
 
