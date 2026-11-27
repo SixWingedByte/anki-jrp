@@ -65,6 +65,14 @@ def generate_css(prefs: StylePrefs) -> str:
             "name": "front",
             "type": "css"
         })
+        if prefs.hover_front_coloring:
+            files.append({"name": "front-hover-color", "type": "css"})
+            files.append({"name": "front-hover-color", "type": "pat", "pats": _patterns_unk})
+            if prefs.highlight_split_accents:
+                files.append({"name": "front-hover-split", "type": "pat", "pats": _patterns})
+        if prefs.hover_front_graph:
+            files.append({"name": "front-hover-graph", "type": "css"})
+            files.append({"name": "front-hover-graph", "type": "pat", "pats": _patterns_unk})
     return _compress_spaces("".join(_fmt_css(fmt_def) for fmt_def in files))
 
 
