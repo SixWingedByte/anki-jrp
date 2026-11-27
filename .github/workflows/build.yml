@@ -95,8 +95,12 @@ jobs:
           cp pkg/bin/mecab.exe pkg/bin/libmecab.dll bin/
           cp pkg/data/ipadic/* ipadic/
 
+      # MeCab libraries for in-process use on macOS and Linux, from pinned fugashi wheels
+      - name: Fetch MeCab libraries
+        run: python -I tools/fetch_mecab_libs.py "$RUNNER_TEMP/bundle/lib"
+
       - name: Build
-        run: python make.py "$RUNNER_TEMP/bundle/data" "$RUNNER_TEMP/bundle/bin" "$RUNNER_TEMP/bundle/ipadic"
+        run: python make.py "$RUNNER_TEMP/bundle/data" "$RUNNER_TEMP/bundle/bin" "$RUNNER_TEMP/bundle/ipadic" "$RUNNER_TEMP/bundle/lib"
 
       - name: Check packages
         run: |
@@ -109,6 +113,10 @@ jobs:
               names = zipfile.ZipFile(f).namelist()
               for required in ("__init__.py", "manifest.json", "js/cards.js", "ankilib/editor.py", "style/front.css"):
                   assert required in names, f"{required} missing from {f}"
+              if "_full" in f or "_ipadic" in f:
+                  for required in ("lib/libmecab-macos.dylib", "lib/libmecab-linux-x86_64.so",
+                                   "lib/libmecab-linux-aarch64.so", "lib/mecabrc", "lib/LICENSE.mecab"):
+                      assert required in names, f"{required} missing from {f}"
               print(f, len(names), "files")
           EOF
 

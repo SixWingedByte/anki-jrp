@@ -2,7 +2,7 @@
 import os.path
 from lzma import LZMAError
 from os.path import dirname
-from typing import Optional, Type, TypeVar
+from typing import Optional, Type, TypeVar, Union
 
 import aqt
 from anki.collection import Collection
@@ -11,7 +11,7 @@ from aqt.operations import QueryOp
 from .templates import update_all_note_types
 from .util import get_path
 from ..pylib.dictionary import AccentEntry, BasicDict, Dictionary, VariantEntry
-from ..pylib.mecab import Mecab
+from ..pylib.mecab import Mecab, MecabError, MecabLib, bundled_library_path
 from ..pylib.preferences import Prefs
 from ..pylib.util import ConfigError
 
@@ -52,8 +52,26 @@ def save_prefs():
         aqt.utils.showWarning(f"Failed to update config file.\nError: {e}")
 
 
+def _init_mecab_library() -> Optional[MecabLib]:
+    """In-process MeCab using the bundled library and dictionary, if both are available."""
+    if not prefs.addon.mecab_use_library or prefs.addon.mecab_use_system_dict:
+        return None
+    lib_path = bundled_library_path(get_path("lib"), dirname(get_path(prefs.addon.mecab_path)))
+    dic_dir = get_path(prefs.addon.mecab_dict_dir)
+    if lib_path is None or not os.path.isfile(os.path.join(dic_dir, "sys.dic")):
+        return None
+    try:
+        return MecabLib(lib_path, dic_dir, get_path("lib", "mecabrc"))
+    except MecabError as e:
+        print(f"JRP: bundled MeCab library unavailable, falling back to the executable: {e}")
+        return None
+
+
 def init_mecab():
     global mecab_handle
+    if lib_handle := _init_mecab_library():
+        mecab_handle = lib_handle
+        return
     exe_path = None if prefs.addon.mecab_use_system_exe else get_path(prefs.addon.mecab_path)
     dir_path = None if prefs.addon.mecab_use_system_dict else get_path(prefs.addon.mecab_dict_dir)
     mecab_handle = Mecab(exe_path, dir_path)
@@ -88,7 +106,7 @@ def load_dict():
 
 
 prefs: Optional[Prefs] = None
-mecab_handle: Optional[Mecab] = None
+mecab_handle: Optional[Union[Mecab, MecabLib]] = None
 dictionary: Optional[Dictionary] = None
 
 QueryOp(parent=aqt.mw, op=lambda col: load_dict(), success=lambda _: print("JRP data loaded")).run_in_background()
