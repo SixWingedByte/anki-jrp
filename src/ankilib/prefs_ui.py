@@ -5,7 +5,7 @@ from typing import Callable, List, Optional, Set, TypeVar
 
 import aqt.utils
 from aqt.notetypechooser import NotetypeChooser
-from aqt.qt import QCheckBox, QDialog, QFormLayout, QFrame, QHBoxLayout, QHeaderView, QLabel, \
+from aqt.qt import QCheckBox, QDialog, QFormLayout, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit, \
     QPushButton, QTabWidget, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, Qt, pyqtSignal
 
 from . import global_vars, prefs_ui_defs as ui_defs
@@ -384,9 +384,29 @@ class NoteTypeWidget(QFrame):
         bottom_lo = QHBoxLayout()
         insert_checkboxes(ui_defs.nt_checkboxes, self, bottom_lo, nt_prefs, _DEFAULT_NT_PREFS)
 
+        auto_lo = QHBoxLayout()
+        auto_lbl = QLabel("Auto-generate fields:", self)
+        auto_edit = QLineEdit(nt_prefs.auto_generate_fields, self)
+        auto_edit.setPlaceholderText("e.g. Sentence, Word")
+        field_list = ", ".join(f["name"] for f in nt_dict["flds"]) if nt_dict else "unknown"
+        auto_tt = "Comma-separated names of fields to fill in with readings and accents (default syntax)\n" \
+                  "when a note of this type is added, including from add-ons like AnkiConnect/Yomitan.\n" \
+                  "Fields that are empty or already contain syntax are left alone.\n\n" \
+                  f"Fields of this note type: {field_list}"
+        auto_lbl.setToolTip(auto_tt)
+        auto_edit.setToolTip(auto_tt)
+
+        def set_auto_fields(text: str):
+            nt_prefs.auto_generate_fields = text.strip()
+
+        auto_edit.textEdited.connect(set_auto_fields)
+        auto_lo.addWidget(auto_lbl)
+        auto_lo.addWidget(auto_edit, 1)
+
         base_lo = QVBoxLayout(self)
         base_lo.addLayout(top_lo)
         base_lo.addLayout(bottom_lo)
+        base_lo.addLayout(auto_lo)
 
         self.setFrameShape(QFrame.Shape.Box)
 

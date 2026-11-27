@@ -54,6 +54,16 @@ the Anki browser, focus the field you want to change and click one of the
 conversion buttons at the right of the editor toolbar or press the associated
 shortcut.
 
+### Automatically When Adding Notes
+
+In the add-on's preferences, on the _Note Types_ tab, enter the names of the
+fields to fill in under _Auto-generate fields_ (comma-separated, e.g.
+`Sentence, Word`). Whenever a note of that type is added, through Anki's Add
+screen or from another add-on such as AnkiConnect (used by Yomitan), those
+fields get readings and accents in the default syntax. Fields that are empty
+or already contain reading/accent syntax are left alone, and a note is always
+added, even if generation fails.
+
 ### Bulk Conversion
 
 The _Notes_ entry in the browser's menu bar contains an action for converting
