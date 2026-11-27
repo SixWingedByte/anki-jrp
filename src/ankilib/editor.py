@@ -14,7 +14,7 @@ from ..pylib.conv_util import detect_syntax, squash_newlines
 from ..pylib.converter import convert
 from ..pylib.html_processing import strip_html
 from ..pylib.mecab import MecabError
-from ..pylib.output import OutputType, fmt_jrp, fmt_migaku, insert_nbsp
+from ..pylib.output import OutputType, fmt_anki, fmt_jrp, fmt_migaku, insert_nbsp
 from ..pylib.segments import ParsingError, parse_jrp, parse_migaku
 
 
@@ -48,7 +48,7 @@ def _convert(edit: Editor, conv_type: ConversionType, out_type: Optional[OutputT
                 return None
 
             try:
-                formatter = fmt_migaku if out_type == OutputType.MIGAKU else fmt_jrp
+                formatter = {OutputType.MIGAKU: fmt_migaku, OutputType.ANKI: fmt_anki}.get(out_type, fmt_jrp)
                 parsed_lines = (gv.mecab_handle.analyze(line) for line in gen_lines(val))
                 conv_lines = (convert(pline, gv.prefs.convert, gv.dictionary) for pline in parsed_lines)
                 return "<br>".join(formatter(s, gv.prefs.output) for s in conv_lines)
@@ -121,6 +121,13 @@ def inject_buttons(buttons: List[str], edit: Editor):
         func=lambda e: _convert(e, ConversionType.GENERATE, OutputType.MIGAKU),
         tip="(Re)generate readings and accents with Migaku syntax (Ctrl+F2)",
         keys="Ctrl+F2")
+    )
+    buttons.append(edit.addButton(
+        icon=get_path("assets", "anki-furigana.svg"),
+        cmd="jrp_generate_anki",
+        func=lambda e: _convert(e, ConversionType.GENERATE, OutputType.ANKI),
+        tip="(Re)generate readings in Anki's built-in furigana syntax, without accents (Shift+F2)",
+        keys="Shift+F2")
     )
     buttons.append(edit.addButton(
         icon=get_path("assets", "restore.svg"),

@@ -54,6 +54,16 @@ the Anki browser, focus the field you want to change and click one of the
 conversion buttons at the right of the editor toolbar or press the associated
 shortcut.
 
+### Anki's Built-in Furigana Syntax
+
+Readings can also be written in Anki's own furigana syntax (`日本[にほん]の
+辞書[じしょ]`), which the built-in `{{furigana:Field}}` filter displays without
+this add-on, for example in shared decks. Use the button next to the other
+conversion buttons (`Shift`+`F2`) or the _Anki furigana_ type in bulk
+conversion. This syntax can't hold pitch accent information, and fields in it
+should be shown with `{{furigana:Field}}` rather than inside a
+`data-jrp-generate` element. _Remove_ (`F4`) works on it as well.
+
 ### Automatically When Adding Notes
 
 In the add-on's preferences, on the _Note Types_ tab, enter the names of the

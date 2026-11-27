@@ -17,13 +17,14 @@ from ..pylib.conv_util import detect_syntax, squash_newlines
 from ..pylib.converter import convert
 from ..pylib.html_processing import strip_html
 from ..pylib.mecab import MecabError
-from ..pylib.output import OutputType, fmt_jrp, fmt_migaku, insert_nbsp
+from ..pylib.output import OutputType, fmt_anki, fmt_jrp, fmt_migaku, insert_nbsp
 from ..pylib.segments import ParsingError, Unit, parse_jrp, parse_migaku
 
 
 class ConvType(Enum):
     DEFAULT = "Default"
     MIGAKU = "Migaku"
+    ANKI = "Anki furigana"
     REMOVE = "Remove"
 
 
@@ -94,7 +95,7 @@ def convert_notes(brws: Browser, note_ids: Sequence[NoteId], field_idx: int,
         if line_units is None:
             return
 
-        formatter = fmt_migaku if conv_type == ConvType.MIGAKU else fmt_jrp
+        formatter = {ConvType.MIGAKU: fmt_migaku, ConvType.ANKI: fmt_anki}.get(conv_type, fmt_jrp)
         output_prefs = gv.prefs.output if regen else None
         update_note("<br>".join(formatter(units, output_prefs) for units in line_units))
 
@@ -145,12 +146,14 @@ class ConvertDialog(QDialog):
         self._field_cb.addItems(flds)
         self._field_cb.setToolTip("The field that will be converted.")
         self._conv_type_cb = QComboBox(self)
-        self._conv_type_cb.addItems([ConvType.DEFAULT.value, ConvType.MIGAKU.value, ConvType.REMOVE.value])
+        self._conv_type_cb.addItems([t.value for t in ConvType])
         self._conv_type_cb.setToolTip("Which type of conversion to perform.\n"
                                       "The existing syntax type (if any) will be auto-detected.\n\n"
                                       "'Default' is the syntax specific to this add-on.\n"
                                       "'Migaku' is the more limited syntax from the Migaku Japanese Add-on,\n"
                                       "\twhich is based on that from the Japanese Support Add-on.\n"
+                                      "'Anki furigana' is Anki's built-in syntax for the {{furigana:Field}} filter\n"
+                                      "\t(readings only, no pitch accent).\n"
                                       "'Remove' deletes either syntax if present")
 
         self._gen_cb = QCheckBox("Regenerate contents", self)
