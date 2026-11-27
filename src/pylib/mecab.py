@@ -1,11 +1,13 @@
 # This project is licensed under the terms of the GNU GPL v3: https://www.gnu.org/licenses/; © 2022 Ben Kerman
+import ctypes
 import os
 import platform
 import subprocess
+import threading
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from subprocess import PIPE, Popen
-from typing import List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 from .normalize import is_kana, to_hiragana
 
@@ -135,6 +137,25 @@ class MecabUnit(ParserUnit):
         return obj, int(fields[0]), int(fields[1])
 
 
+_NODE_FORMAT = "%m\\t%ps,%pe,%H\\n"
+_UNK_FEATURE = "未知語"
+
+
+def _units_from_output(utf8_bytes: bytes, lines: Iterable[str]) -> List[ParserUnit]:
+    """Turns MeCab output lines (up to EOS) for utf8_bytes into units, keeping skipped whitespace."""
+    units: List[ParserUnit] = []
+    last_end = 0
+    for line in lines:
+        if line == "EOS":
+            break
+        unit, start, end = MecabUnit.from_line(line)
+        if last_end != start:
+            units.append(ParserUnit(utf8_bytes[last_end:start].decode("utf-8")))
+        last_end = end
+        units.append(unit)
+    return units
+
+
 @dataclass
 class Mecab:
     exe_path: Optional[str] = None
@@ -145,7 +166,7 @@ class Mecab:
         if self._inst is None or self._inst.poll() is not None:
             env = os.environ.copy()
             args = [self.exe_path] if self.exe_path else ["mecab"]
-            args.extend(("--unk-feature=未知語", "--node-format=%m\\t%ps,%pe,%H\\n"))
+            args.extend((f"--unk-feature={_UNK_FEATURE}", f"--node-format={_NODE_FORMAT}"))
             if self.exe_path:
                 if platform.system() == "Linux":
                     env["LD_LIBRARY_PATH"] = os.path.dirname(self.exe_path)
@@ -173,12 +194,79 @@ class Mecab:
         utf8_bytes = txt.encode("utf-8")
         inst.stdin.write(utf8_bytes + b"\n")
         inst.stdin.flush()
-        units = []
-        last_end = 0
-        while (line := inst.stdout.readline().rstrip(b"\r\n")) != b"EOS":
-            unit, start, end = MecabUnit.from_line(line.decode("utf-8"))
-            if last_end != start:
-                units.append(ParserUnit(utf8_bytes[last_end:start].decode("utf-8")))
-            last_end = end
-            units.append(unit)
-        return units
+
+        def read_lines():
+            while True:
+                yield inst.stdout.readline().rstrip(b"\r\n").decode("utf-8")
+
+        return _units_from_output(utf8_bytes, read_lines())
+
+
+def bundled_library_path(lib_dir: str, windows_bin_dir: str) -> Optional[str]:
+    """The MeCab shared library bundled for this platform, or None if there's none."""
+    system, machine = platform.system(), platform.machine().lower()
+    if system == "Windows":
+        # libmecab.dll next to mecab.exe is x86-64; it can't be loaded into ARM64 Python
+        if machine in ("amd64", "x86_64") and ctypes.sizeof(ctypes.c_void_p) == 8:
+            path = os.path.join(windows_bin_dir, "libmecab.dll")
+        else:
+            return None
+    elif system == "Darwin":
+        path = os.path.join(lib_dir, "libmecab-macos.dylib")  # universal: x86_64 + arm64
+    elif system == "Linux" and machine in ("x86_64", "amd64"):
+        path = os.path.join(lib_dir, "libmecab-linux-x86_64.so")
+    elif system == "Linux" and machine in ("aarch64", "arm64"):
+        path = os.path.join(lib_dir, "libmecab-linux-aarch64.so")
+    else:
+        return None
+    return path if os.path.isfile(path) else None
+
+
+class MecabLib:
+    """MeCab running in-process through its C API, loaded with ctypes.
+
+    Works with any Python version (no compiled extension) and needs no separate executable.
+    Produces the same units as Mecab."""
+
+    def __init__(self, lib_path: str, dic_dir: str, rc_path: str):
+        try:
+            lib = ctypes.CDLL(lib_path)
+        except OSError as e:
+            raise MecabError(f"failed to load {lib_path}: {e}")
+        lib.mecab_new.argtypes = [ctypes.c_int, ctypes.POINTER(ctypes.c_char_p)]
+        lib.mecab_new.restype = ctypes.c_void_p
+        lib.mecab_sparse_tostr2.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_size_t]
+        lib.mecab_sparse_tostr2.restype = ctypes.c_char_p
+        lib.mecab_strerror.argtypes = [ctypes.c_void_p]
+        lib.mecab_strerror.restype = ctypes.c_char_p
+        lib.mecab_destroy.argtypes = [ctypes.c_void_p]
+        lib.mecab_destroy.restype = None
+        self._lib = lib
+        self._lock = threading.Lock()  # a MeCab instance isn't thread-safe; ctypes releases the GIL
+
+        args = ["mecab", f"--rcfile={rc_path}", f"--dicdir={dic_dir}",
+                f"--unk-feature={_UNK_FEATURE}", f"--node-format={_NODE_FORMAT}"]
+        argv = (ctypes.c_char_p * len(args))(*(a.encode("utf-8") for a in args))
+        self._mecab = lib.mecab_new(len(args), argv)
+        if not self._mecab:
+            err = lib.mecab_strerror(None)
+            detail = err.decode("utf-8", "replace") if err else "no details"
+            raise MecabError(f"failed to initialize MeCab with dictionary {dic_dir} ({detail})")
+
+    def __del__(self):
+        if getattr(self, "_mecab", None):
+            self._lib.mecab_destroy(self._mecab)
+            self._mecab = None
+
+    def analyze(self, txt: str) -> List[ParserUnit]:
+        if "\n" in txt:
+            raise MecabError("line feed in text passed to analyze function")
+
+        utf8_bytes = txt.encode("utf-8")
+        with self._lock:
+            out = self._lib.mecab_sparse_tostr2(self._mecab, utf8_bytes, len(utf8_bytes))
+            if out is None:
+                err = self._lib.mecab_strerror(self._mecab)
+                raise MecabError(f"analysis failed: {err.decode('utf-8', 'replace') if err else 'unknown'}")
+            output = out.decode("utf-8")
+        return _units_from_output(utf8_bytes, output.splitlines())
