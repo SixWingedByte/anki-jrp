@@ -103,6 +103,14 @@ addon_defs = [
         "tool": _path_tt,
         "type": WidgetType.Directory
     }, {
+        "name": "mecab_use_library",
+        "desc": "Use bundled MeCab library",
+        "tool": "Run MeCab inside Anki using the library bundled with the add-on (Windows x64, macOS, Linux)\n"
+                "and the bundled dictionary. Takes precedence over the executable options below.\n"
+                "If the library or dictionary isn't available, the executable is used instead.\n"
+                "Disable this to always use the MeCab executable.",
+        "type": WidgetType.Checkbox
+    }, {
         "name": "mecab_use_system_exe",
         "desc": "Use system-wide MeCab executable",
         "tool": "Ignore the option above and assume that there is a MeCab executable in PATH.\n"

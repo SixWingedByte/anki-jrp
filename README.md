@@ -17,8 +17,10 @@ backups if you haven't already.
 
 1. Make sure you have a supported version of Anki installed. See [the AnkiWeb
    page](https://ankiweb.net/shared/info/1845503807) for further information.
-2. On non-Windows platforms only, [install MeCab](/doc/mecab.md) since only a
-   Windows executable is bundled with the add-on.
+2. With the `ipadic` package, MeCab runs inside Anki on Windows (x64), macOS
+   and Linux, so there's nothing else to install. With the other packages, or
+   if you turn off _Use bundled MeCab library_ in the preferences, non-Windows
+   platforms need [MeCab installed](/doc/mecab.md).
 3. Install the full version of the add-on from
    [AnkiWeb](https://ankiweb.net/shared/info/1845503807).  
    Alternatively, download one of the `.ankiaddon` files from the
