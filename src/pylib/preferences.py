@@ -52,6 +52,7 @@ class NoteTypePrefs:
     nt_id: int
     manage_script: bool = True
     manage_style: bool = True
+    auto_generate_fields: str = ""
     style: StylePrefs = field(default_factory=StylePrefs)
 
     @classmethod
