@@ -135,6 +135,20 @@ jobs:
               print(f, len(names), "files")
           EOF
 
+      # Unit tests, end-to-end conversion with the bundled MeCab library and the data built
+      # above, and parity between the Python parsers and the packaged card script
+      - name: Run tests
+        env:
+          JRP_REQUIRE_ALL: "1"
+          JRP_DATA_DIR: ${{ runner.temp }}/bundle/data
+          JRP_IPADIC_DIR: ${{ runner.temp }}/bundle/ipadic
+          JRP_MECAB_LIB: ${{ runner.temp }}/bundle/lib/libmecab-linux-x86_64.so
+          JRP_MECABRC: ${{ runner.temp }}/bundle/lib/mecabrc
+          JRP_CARDS_JS: ${{ runner.temp }}/js/cards.js
+        run: |
+          python -I -c "import glob, sys, zipfile; zipfile.ZipFile(glob.glob('target/*_ipadic.ankiaddon')[0]).extract('js/cards.js', sys.argv[1])" "$RUNNER_TEMP"
+          python -B -m unittest discover -s tests -t . -v
+
       - uses: actions/upload-artifact@v7
         with:
           name: ankiaddon

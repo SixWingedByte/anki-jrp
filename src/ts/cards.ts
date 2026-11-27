@@ -344,7 +344,7 @@ class ParsingError extends Error {
 	}
 }
 
-const nbsp_re = /(?:%nbsp|\x0a)/;
+const nbsp_re = /&nbsp;|\xa0/g;  // same as _nbsp_re in segments.py
 
 function replace_nbsp(val: string): string {
 	return val.replace(nbsp_re, " ");
