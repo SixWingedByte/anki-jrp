@@ -162,6 +162,30 @@ manual changes by selecting them in the browser and
 long as _Regenerate contents_ is disabled. Make sure to back up all notes in
 case there are bugs in the conversion algorithm.
 
+## Data Sources and Licenses
+
+The packages built by this repository's GitHub workflow include:
+
+- **Word variants** (`data/variants.xz`), generated from the
+  [JMdict](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project)
+  dictionary file, which is the property of the
+  [Electronic Dictionary Research and Development Group](https://www.edrdg.org/)
+  and used in conformance with the group's
+  [licence](https://www.edrdg.org/edrdg/licence.html) (CC BY-SA 4.0). It's
+  rebuilt from the current JMdict for every release.
+- **Pitch accents** (`data/accents.xz`) from
+  [Kanjium](https://github.com/mifunetoshiro/kanjium) (CC BY-SA 4.0): "The
+  pitch accent notation, verb particle data, phonetics, homonyms and other
+  additions or modifications to EDICT, KANJIDIC or KRADFILE were provided by
+  Uros O. through his free database." Words not in Kanjium use the pitch
+  accent data from earlier releases of this add-on, which was compiled for the
+  Migaku Japanese add-on from several dictionaries.
+- **MeCab** with the IPAdic dictionary, and MeCab libraries for macOS and
+  Linux taken from [fugashi](https://github.com/polm/fugashi) (MIT; MeCab is
+  BSD-3-Clause). The license texts are included in the `lib` folder.
+
+The data files are licensed under CC BY-SA 4.0 as adaptations of the above.
+
 ## Reporting Issues
 
 If you encounter a bug or crash while using the add-on please report it. You can
