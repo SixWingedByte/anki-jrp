@@ -31,8 +31,9 @@ env:
   # Pitch accents (CC BY-SA 4.0), pinned to the last commit that changed the file
   KANJIUM_URL: https://raw.githubusercontent.com/mifunetoshiro/kanjium/685d4d723d6d20bf9beb169103aeac188eb067ad/data/source_files/raw/accents.txt
   KANJIUM_SHA256: 8bd0dd127dab32ceec94cb03ab1ba6b68858ea73421dfa1731af2f373deb4f20
-  # Word variants (CC BY-SA 4.0); EDRDG regenerates it daily, so it can't be pinned
-  JMDICT_URL: https://www.edrdg.org/pub/Nihongo/JMdict.gz
+  # Word variants (CC BY-SA 4.0); EDRDG regenerates it daily, so it can't be pinned.
+  # Tried in order; if none can be reached, the variants of the previous release are reused.
+  JMDICT_URLS: https://www.edrdg.org/pub/Nihongo/JMdict.gz http://ftp.edrdg.org/pub/Nihongo/JMdict.gz
 
 jobs:
   build:
@@ -98,6 +99,7 @@ jobs:
           python -I -c "import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall('pkg')" "$BUNDLE_FILE"
           mkdir data bin ipadic
           cp pkg/data/accents.xz fallback-accents.xz
+          cp pkg/data/variants.xz fallback-variants.xz
           cp pkg/bin/mecab.exe pkg/bin/libmecab.dll bin/
           cp pkg/data/ipadic/* ipadic/
 
@@ -106,9 +108,21 @@ jobs:
           cd "$RUNNER_TEMP/bundle"
           curl -fsSL -o kanjium-accents.txt "$KANJIUM_URL"
           echo "$KANJIUM_SHA256  kanjium-accents.txt" | sha256sum --check -
-          curl -fsSL -o JMdict.gz "$JMDICT_URL"
-          sha256sum JMdict.gz
-          python -B "$GITHUB_WORKSPACE/tools/build_data.py" data JMdict.gz kanjium-accents.txt fallback-accents.xz
+          variants_source=fallback-variants.xz
+          for url in $JMDICT_URLS; do
+            if curl -fsSL --retry 3 --retry-all-errors --retry-delay 10 --connect-timeout 30 --max-time 600 \
+                -o JMdict.gz "$url" && gzip -t JMdict.gz; then
+              echo "Downloaded JMdict from $url"
+              sha256sum JMdict.gz
+              variants_source=JMdict.gz
+              break
+            fi
+            echo "Downloading JMdict from $url failed"
+          done
+          if [ "$variants_source" != JMdict.gz ]; then
+            echo "::warning title=JMdict unavailable::Couldn't download JMdict; reusing the word variants of the previous release."
+          fi
+          python -B "$GITHUB_WORKSPACE/tools/build_data.py" data "$variants_source" kanjium-accents.txt fallback-accents.xz
 
       # MeCab libraries for in-process use on macOS and Linux, from pinned fugashi wheels
       - name: Fetch MeCab libraries
