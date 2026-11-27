@@ -25,9 +25,8 @@ If you didn't use the Migaku Add-on before, all you need to do is find the tag
 (in `{{`/`}}`) for the field you want to generate from, and place HTML tags
 around it like in the line above.
 
-The card script currently doesn't work properly if you use `{{FrontSide}}` in
-back templates, so replace it with the contents of the front template
-(excluding any add-on managed sections) until the underlying issue is fixed.
+`{{FrontSide}}` works in back templates. Content from the front is shown in
+full on the back, even if it's inside an element with the class `jrp-front`.
 
 ---
 
@@ -55,6 +54,13 @@ Or any enclosing element:
 	<div data-jrp-generate>{{Sentence}}</div>
 </div>
 ```
+
+By default, furigana, coloring, indicators and graphs are hidden inside
+`jrp-front` elements. In the note type's style settings
+(_Tools_ → _JRP Add-on Preferences_ → _Note Types_ → _Edit Style_) you can
+choose what to reveal while hovering over a word. On devices without a mouse,
+such as AnkiDroid or AnkiMobile, tapping a word reveals the same things and
+tapping it again hides them.
 
 ## Vertical Writing
 

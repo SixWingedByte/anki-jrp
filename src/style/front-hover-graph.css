@@ -1,3 +1,4 @@
 .jrp-front .jrp-unit:hover .jrp-graph {
 	display: block;
+	visibility: visible;
 }

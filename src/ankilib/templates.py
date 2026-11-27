@@ -28,11 +28,15 @@ _patterns_unk = _patterns + ("unknown",)
 def _fmt_css(fmt_def: Dict[str, Any]) -> str:
     fmt = _read_file("style", f"{fmt_def['name']}.{fmt_def['type']}")
     if fmt_def["type"] == "var":
-        return fmt.format(**fmt_def["vars"])
+        css = fmt.format(**fmt_def["vars"])
     elif fmt_def["type"] == "pat":
-        return "".join(fmt.format(pattern=pat) for pat in fmt_def["pats"])
+        css = "".join(fmt.format(pattern=pat) for pat in fmt_def["pats"])
     else:
-        return fmt
+        css = fmt
+    if fmt_def.get("tap"):
+        # same rules for words revealed by tapping (devices without hover, see cards.ts)
+        css += css.replace(":hover", ".jrp-revealed")
+    return css
 
 
 def generate_css(prefs: StylePrefs) -> str:
@@ -66,23 +70,29 @@ def generate_css(prefs: StylePrefs) -> str:
             "type": "css"
         })
         if prefs.hover_front_coloring:
-            files.append({"name": "front-hover-color", "type": "css"})
-            files.append({"name": "front-hover-color", "type": "pat", "pats": _patterns_unk})
+            files.append({"name": "front-hover-color", "type": "css", "tap": True})
+            files.append({"name": "front-hover-color", "type": "pat", "pats": _patterns_unk, "tap": True})
             if prefs.highlight_split_accents:
-                files.append({"name": "front-hover-split", "type": "pat", "pats": _patterns})
+                files.append({"name": "front-hover-split", "type": "pat", "pats": _patterns, "tap": True})
         if prefs.hover_front_graph:
-            files.append({"name": "front-hover-graph", "type": "css"})
-            files.append({"name": "front-hover-graph", "type": "pat", "pats": _patterns_unk})
+            files.append({"name": "front-hover-graph", "type": "css", "tap": True})
+            files.append({"name": "front-hover-graph", "type": "pat", "pats": _patterns_unk, "tap": True})
         if prefs.hover_front_furigana:
-            files.append({"name": "front-hover-furigana", "type": "css"})
+            files.append({"name": "front-hover-furigana", "type": "css", "tap": True})
         if prefs.hover_front_indicators:
-            files.append({"name": "front-hover-indicators", "type": "var",
+            files.append({"name": "front-hover-indicators", "type": "var", "tap": True,
                           "vars": {"display": "inline-block" if prefs.use_diamond_indicators else "flex"}})
+    if not prefs.graph_particle:
+        files.append({
+            "name": "graph-no-particle",
+            "type": "css"
+        })
     return _compress_spaces("".join(_fmt_css(fmt_def) for fmt_def in files))
 
 
-def generate_js() -> str:
-    return f"(function(){{ {_compress_spaces(_read_file('js', 'cards.js'))} }})();"
+def generate_js(answer_side: bool = False) -> str:
+    side = "true" if answer_side else "false"
+    return f"(function(){{ const jrp_answer_side = {side}; {_compress_spaces(_read_file('js', 'cards.js'))} }})();"
 
 
 _trail_str = "Do Not Edit If Using Automatic CSS and JS Management"
@@ -146,17 +156,17 @@ def update_style(nt: NotetypeDict, prefs: StylePrefs, force: bool = False) -> Op
 
 
 def update_script(nt: NotetypeDict, force: bool = False) -> Optional[NotetypeDict]:
-    def update_js(fmt: str) -> Optional[str]:
+    def update_js(fmt: str, answer_side: bool) -> Optional[str]:
         if sects := _split_managed_section(fmt, force_update=force):
             before, after = sects
-            return f"{before}{_enclose_code(f'<script>{generate_js()}</script>')}{after}"
+            return f"{before}{_enclose_code(f'<script>{generate_js(answer_side)}</script>')}{after}"
         else:
             return None
 
     had_changes = False
     for tpl in nt["tmpls"]:
         for fmt_name in ("qfmt", "afmt"):
-            new_fmt = update_js(tpl[fmt_name])
+            new_fmt = update_js(tpl[fmt_name], answer_side=fmt_name == "afmt")
             if new_fmt:
                 had_changes = True
                 tpl[fmt_name] = new_fmt
