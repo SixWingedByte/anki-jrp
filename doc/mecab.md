@@ -1,13 +1,61 @@
 # Installing MeCab
 
-If you're not on Windows you'll need to install MeCab yourself.
+The add-on uses [MeCab](https://taku910.github.io/mecab/) with the IPAdic
+dictionary to split text into words and find their readings.
+
+**With the `_full.ankiaddon` package you don't need to install anything.** It
+includes the MeCab library for Windows (x64), macOS (Intel and Apple Silicon)
+and Linux (x86-64 and ARM64) as well as the dictionary, and runs MeCab inside
+Anki. This page is only needed if:
+
+- you installed the `_no-dictionary` or `_lite` package,
+- you use Windows on ARM, where the bundled Windows executable is used instead
+  of the library (this works without further setup with the `_full` package),
+- you turned off _Use bundled MeCab library_, or
+- you want to use your own MeCab installation or dictionary.
+
+## How the Add-on Chooses MeCab
+
+The MeCab settings are on the _General_ tab of the add-on's preferences
+(_Tools_ → _JRP Add-on Preferences..._):
+
+1. If _Use bundled MeCab library_ is checked (the default), _Use MeCab system
+   dictionary_ is unchecked, and both the library for your platform and the
+   dictionary in _MeCab dictionary directory_ are present, MeCab runs inside
+   Anki.
+2. Otherwise, the MeCab executable is used: the one in _MeCab executable path_
+   (by default the bundled `bin/mecab.exe` on Windows), or `mecab` from your
+   `PATH` if _Use system-wide MeCab executable_ is checked (the default on macOS
+   and Linux). With _Use MeCab system dictionary_, MeCab uses the dictionary
+   configured in its own installation instead of _MeCab dictionary directory_.
+
+If the library can't be loaded, the add-on falls back to the executable
+automatically.
+
+## Troubleshooting
+
+### Dictionary not found
+
+"The MeCab dictionary wasn't found", or an error like `Mecab error: invalid
+line: param.cpp(69) [ifs] no such file or directory: ...\data\ipadic\dicrc`,
+means there's no dictionary where the add-on expects it. Install the
+`_full.ankiaddon` package (called `_ipadic.ankiaddon` up to version 0.3), or
+install a MeCab dictionary yourself and either set _MeCab dictionary directory_
+to it or check _Use MeCab system dictionary_.
+
+### Executable not found
+
+`Mecab error: executable not found` means the add-on is using the executable
+(see [above](#how-the-add-on-chooses-mecab)) and can't find it. Either install
+the `_full` package and keep _Use bundled MeCab library_ checked, or install
+MeCab as described below and set its path.
 
 ## macOS
 
 MeCab is available through [Homebrew](https://formulae.brew.sh/formula/mecab)
 and [MacPorts](https://ports.macports.org/port/mecab/).
 
-### Troubleshooting
+### Setting the Executable Path
 
 #### Executable not found
 
@@ -28,12 +76,12 @@ executable:
 If you get an error like `Mecab error: invalid line: param.cpp(69) [ifs]
 no such file or directory: /path/to/mecabrc`, run `touch /path/to/mecabrc` to
 create the file in question, where the path is whatever was reported in the
-error message.
+error message. (If the path ends in `dicrc` instead, see
+[Dictionary not found](#dictionary-not-found).)
 
 ---
 
-Please report any macOS-related issues that aren't mentioned here. Since I don't
-own any macOS devices I can't test the add-on on macOS myself.
+Please report any macOS-related issues that aren't mentioned here.
 
 ## Linux
 
