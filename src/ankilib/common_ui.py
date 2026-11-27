@@ -1,6 +1,5 @@
 # This project is licensed under the terms of the GNU GPL v3: https://www.gnu.org/licenses/; © 2022 Ben Kerman
 import os
-import re
 from typing import Any, Callable, Iterable, Optional, Sequence, TypeVar, Union
 
 from aqt.qt import QCheckBox, QColor, QColorDialog, QDialog, QFileDialog, QFormLayout, QHBoxLayout, \
@@ -103,13 +102,13 @@ class PickerWidget(QWidget):
         self._le = QLineEdit(self)
         self._le.textEdited.connect(lambda txt: self.set_value(txt, True))
 
-        btn = QPushButton("…", self)
-        btn.setMaximumWidth(btn.fontMetrics().boundingRect("…").width() + 16)
-        btn.clicked.connect(lambda: self._picker.show())
+        self._btn = QPushButton("…", self)
+        self._btn.setMaximumWidth(self._btn.fontMetrics().boundingRect("…").width() + 16)
+        self._btn.clicked.connect(lambda: self._picker.show())
 
         lo = QHBoxLayout(self)
         lo.addWidget(self._le, 1)
-        lo.addWidget(btn)
+        lo.addWidget(self._btn)
         lo.setContentsMargins(0, 0, 0, 0)
 
         self.set_value(init_val)
@@ -132,12 +131,35 @@ class ColorWidget(PickerWidget):
     def set_value(self, val: str, from_text: bool = False):
         if not from_text:
             self._le.setText(val)
-        if m := re.match(r"#([\da-f]{2})([\da-f]{2})([\da-f]{2})", val.strip(), re.I):
-            qcolor = QColor(int(m.group(1), 16), int(m.group(2), 16), int(m.group(3), 16))
-        else:
-            qcolor = QColor(0xff, 0xff, 0xff)
-        self._picker.setCurrentColor(qcolor)
+        qcolor = parse_color(val)
+        self._picker.setCurrentColor(qcolor if qcolor else QColor(0xff, 0xff, 0xff))
+        self._show_color(qcolor)
         self.value_changed.emit(val.strip())
+
+    def _show_color(self, qcolor: Optional[QColor]):
+        """Shows the configured color on the picker button, as a preview."""
+        if qcolor is None:
+            self._btn.setStyleSheet("")
+            self._btn.setToolTip("Choose a color\n(the current value can't be previewed)")
+            return
+        text = "#000000" if relative_luminance(qcolor) > 0.4 else "#ffffff"
+        self._btn.setStyleSheet(f"QPushButton {{ background-color: {qcolor.name()}; color: {text}; "
+                                f"border: 1px solid palette(mid); border-radius: 3px; padding: 2px 6px; }}")
+        self._btn.setToolTip(f"Choose a color (current: {qcolor.name()})")
+
+
+def parse_color(val: str) -> Optional[QColor]:
+    """The color for a CSS color value, if Qt understands it: #rgb, #rrggbb or a color name.
+    Values like var(--x) or rgb(...) can't be previewed and give None."""
+    qcolor = QColor(val.strip())
+    return qcolor if val.strip() and qcolor.isValid() else None
+
+
+def relative_luminance(qcolor: QColor) -> float:
+    def channel(c: float) -> float:
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+
+    return 0.2126 * channel(qcolor.redF()) + 0.7152 * channel(qcolor.greenF()) + 0.0722 * channel(qcolor.blueF())
 
 
 class AnyFileWidget(PickerWidget):
