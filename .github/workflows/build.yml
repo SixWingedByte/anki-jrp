@@ -1,0 +1,96 @@
+name: Build add-on
+
+# Builds the .ankiaddon packages with make.py.
+# - Pull requests and manual runs: build and upload the packages as a workflow artifact.
+# - Version tags (v*): additionally create a draft GitHub release with the packages attached.
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  # Pitch accent data, the Windows MeCab binaries and the IPAdic dictionary aren't part of the
+  # repository. They're taken from the upstream v0.2 release, pinned by checksum.
+  BUNDLE_REPO: Ben-Kerman/anki-jrp
+  BUNDLE_TAG: v0.2
+  BUNDLE_FILE: japanese-readings-and-pitch-accent_0.2_ipadic.ankiaddon
+  BUNDLE_SHA256: b852fd6b5e000a2af181e6345d2a6e7f4fd3f09f8ce4bfdf7959e089d7c8f926
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      # Same TypeScript line the upstream releases were built with; make.py relies on its CLI flags.
+      - name: Install TypeScript
+        run: npm install --global typescript@4.9.4
+
+      - name: Check tag matches version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version=$(python -c "exec(open('src/pylib/version.py').read()); print(script)")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match src/pylib/version.py (script = \"$version\"). Bump the version or tag v$version."
+            exit 1
+          fi
+
+      - name: Fetch bundled data and MeCab
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/bundle"
+          cd "$RUNNER_TEMP/bundle"
+          gh release download "$BUNDLE_TAG" --repo "$BUNDLE_REPO" --pattern "$BUNDLE_FILE"
+          echo "$BUNDLE_SHA256  $BUNDLE_FILE" | sha256sum --check -
+          python -I -c "import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall('pkg')" "$BUNDLE_FILE"
+          mkdir data bin ipadic
+          cp pkg/data/accents.xz pkg/data/variants.xz data/
+          cp pkg/bin/mecab.exe pkg/bin/libmecab.dll bin/
+          cp pkg/data/ipadic/* ipadic/
+
+      - name: Build
+        run: python make.py "$RUNNER_TEMP/bundle/data" "$RUNNER_TEMP/bundle/bin" "$RUNNER_TEMP/bundle/ipadic"
+
+      - name: Check packages
+        run: |
+          ls -l target/
+          python - <<'EOF'
+          import glob, zipfile
+          files = sorted(glob.glob("target/*.ankiaddon"))
+          assert len(files) == 3, files
+          for f in files:
+              names = zipfile.ZipFile(f).namelist()
+              for required in ("__init__.py", "manifest.json", "js/cards.js", "ankilib/editor.py", "style/front.css"):
+                  assert required in names, f"{required} missing from {f}"
+              print(f, len(names), "files")
+          EOF
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ankiaddon
+          path: target/*
+          if-no-files-found: error
+
+      - name: Create draft release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" target/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes
