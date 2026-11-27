@@ -35,6 +35,9 @@ def on_note_will_be_added(col: Collection, note: Note, deck_id: DeckId) -> None:
     if gv.dictionary is None or gv.mecab_handle is None:
         print("JRP: dictionary or MeCab not loaded yet, not generating fields for new note")
         return
+    if problem := gv.mecab_problem():
+        print(f"JRP: not generating fields for new note: {problem}")
+        return
 
     for name in names:
         if name not in note:
