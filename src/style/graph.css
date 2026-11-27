@@ -30,6 +30,10 @@
 	font-size: var(--jrp-graph-font-size);
 }
 
+.jrp-graph-particle {
+	opacity: 0.45;
+}
+
 .jrp-graph-bar-unaccented {
 	border-top: 0.15em solid black;
 }
