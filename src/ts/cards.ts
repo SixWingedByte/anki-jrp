@@ -770,7 +770,9 @@ function generate() {
 		adopt_migaku_elements();
 	}
 
-	const root_elements: Element[] = [];
+	// The element that has the attribute, and the one whose content is generated: the
+	// innermost element of a chain of single children, e.g. a <div> the field is wrapped in.
+	const root_elements: [Element, Element][] = [];
 	for(const e of document.querySelectorAll("[data-jrp-generate]")) {
 		// The script can run more than once per card, e.g. when {{FrontSide}} brings the front
 		// template's copy along. Content that was already generated must not be parsed again.
@@ -783,19 +785,19 @@ function generate() {
 			while(deepest_parent.childNodes.length === 1 && deepest_parent.firstElementChild !== null) {
 				deepest_parent = deepest_parent.firstElementChild;
 			}
-			root_elements.push(deepest_parent);
+			root_elements.push([e, deepest_parent]);
 		}
 	}
 
 	const br_re = /<br[\t\n\f\r ]*>/;
-	for(const root of root_elements) {
+	for(const [generate_element, root] of root_elements) {
 		const lines = root.innerHTML.split(br_re);
 		while(root.firstChild !== null) {
 			root.firstChild.remove();
 		}
 
 		try {
-			const settings = generator_settings(root.getAttribute("data-jrp-generate")!);
+			const settings = generator_settings(generate_element.getAttribute("data-jrp-generate") ?? "");
 
 			root.append(...lines.flatMap((line, index) => {
 				const parser = settings["migaku"] ? parse_migaku : parse_jrp;
